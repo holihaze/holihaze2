@@ -23,6 +23,7 @@ export default function Register() {
   const [showDialog, setShowDialog] = useState(false) // State for dialog visibility
   const [passNumber, setPassNumber] = useState<string>("")
   const [email, setEmail] = useState<string>("")
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   // Fetch search params only on client-side
   useEffect(() => {
@@ -98,15 +99,18 @@ export default function Register() {
     clearErrors("email")
     clearErrors("phone")
     setGlobalError(null)
+    setIsLoading(true)
 
     if (data.phone.length !== 10) {
       setError("phone", { type: "manual", message: "Phone number must be exactly 10 digits." })
+      setIsLoading(false)
       return
     }
 
     const uniqueField = await isEmailOrPhoneUnique(data.email, data.phone)
     if (uniqueField) {
       setError(uniqueField, { type: "manual", message: `${uniqueField.charAt(0).toUpperCase() + uniqueField.slice(1)} already exists. Please use a different ${uniqueField}.` })
+      setIsLoading(false)
       return
     }
 
@@ -136,6 +140,7 @@ export default function Register() {
       console.error("Error during registration:", error)
       setGlobalError("Error: Something went wrong. Please try again.")
     }
+    setIsLoading(false)
   }
 
   return (
@@ -203,12 +208,15 @@ export default function Register() {
             </div>
             <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
               <Link href="/" className="w-full sm:w-auto">
-                <Button variant="outline" className="w-full sm:w-auto">
-                  Return to Home
-                </Button>
+                <Button variant="outline" className="w-full sm:w-auto">Return to Home</Button>
               </Link>
-              <Button type="submit" className="w-full sm:w-auto">
-                Click to Proceed
+              <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <span className="animate-spin h-5 w-5 border-4 border-white border-t-transparent rounded-full mr-2"></span>
+                    Saving...
+                  </div>
+                ) : "Click to Proceed"}
               </Button>
             </CardFooter>
           </form>
