@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,10 +16,13 @@ import { db } from "./firebaseConfig"
 
 export default function Register() {
   const router = useRouter()
-  
+
   // State to manage global error message
   const [globalError, setGlobalError] = useState<string | null>(null)
   const [passType, setPassType] = useState<string | null>(null)
+  const [showDialog, setShowDialog] = useState(false) // State for dialog visibility
+  const [passNumber, setPassNumber] = useState<string>("")
+  const [email, setEmail] = useState<string>("")
 
   // Fetch search params only on client-side
   useEffect(() => {
@@ -36,6 +39,7 @@ export default function Register() {
     watch,
     clearErrors,
     formState: { errors },
+    reset, // Added to reset form after submission
   } = useForm({
     defaultValues: {
       firstName: "",
@@ -91,18 +95,15 @@ export default function Register() {
   }
 
   const onSubmit = async (data: any) => {
-    // Clear previous errors
     clearErrors("email")
     clearErrors("phone")
-    setGlobalError(null)  // Clear any previous global errors
+    setGlobalError(null)
 
-    // Validate phone number length
     if (data.phone.length !== 10) {
       setError("phone", { type: "manual", message: "Phone number must be exactly 10 digits." })
       return
     }
 
-    // Check if email or phone number is unique
     const uniqueField = await isEmailOrPhoneUnique(data.email, data.phone)
     if (uniqueField) {
       setError(uniqueField, { type: "manual", message: `${uniqueField.charAt(0).toUpperCase() + uniqueField.slice(1)} already exists. Please use a different ${uniqueField}.` })
@@ -119,13 +120,21 @@ export default function Register() {
     }
 
     try {
-      const docId = await saveToFirebase(registrationData)
+      await saveToFirebase(registrationData)
 
-      // Removed the payment functionality, everything else stays the same
+      // Set pass number and email for the dialog box
+      setPassNumber(passNumber)
+      setEmail(data.email)
+
+      // Show dialog box
+      setShowDialog(true)
+
+      // Clear the form
+      reset()
 
     } catch (error) {
       console.error("Error during registration:", error)
-      setGlobalError("Error: Something went wrong. Please try again.") // Set global error message
+      setGlobalError("Error: Something went wrong. Please try again.")
     }
   }
 
@@ -191,7 +200,6 @@ export default function Register() {
                 />
                 {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
               </div>
-
             </div>
             <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 mt-4">
               <Link href="/" className="w-full sm:w-auto">
@@ -200,10 +208,9 @@ export default function Register() {
                 </Button>
               </Link>
               <Button type="submit" className="w-full sm:w-auto">
-                Proceed to Payment
+                Click to Proceed
               </Button>
             </CardFooter>
-
           </form>
         </CardContent>
         {/* Global error message */}
@@ -213,6 +220,31 @@ export default function Register() {
           </div>
         )}
       </Card>
+      
+      {/* Dialog Box */}
+      {showDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto">
+            <h2 className="text-lg font-semibold">Registration Successful</h2>
+            <p className="mt-4">Pass Number: {passNumber}</p>
+            <p className="mt-2">Email: {email}</p>
+            <a
+              href={`https://wa.me/+919455797973?text=I%20would%20like%20to%20make%20the%20payment%20for%20Pass%20${passNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 underline mt-4 block"
+            >
+              Click here for Payment
+            </a>
+            <Button
+              onClick={() => setShowDialog(false)}
+              className="mt-4 w-full"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
