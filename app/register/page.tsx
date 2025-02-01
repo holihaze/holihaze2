@@ -24,11 +24,16 @@ export default function Register() {
   const [passNumber, setPassNumber] = useState<string>("")
   const [email, setEmail] = useState<string>("")
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [finalPrice, setFinalPrice] = useState<number>(0);
+
+
+
 
   // Fetch search params only on client-side
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search)
     const pass = searchParams.get("pass")
+    console.log(price)
     setPassType(pass)
   }, [])
 
@@ -52,7 +57,7 @@ export default function Register() {
   })
 
   const gender = watch("gender")
-  const price = gender === "male" ? 599 : gender === "female" ? 499 : 0
+  const price = gender === "male" ? 599 : gender === "female" ? 499 : 0 
 
   const handleSelectChange = (value: string) => {
     setValue("gender", value, { shouldValidate: true })
@@ -96,53 +101,53 @@ export default function Register() {
   }
 
   const onSubmit = async (data: any) => {
-    clearErrors("email")
-    clearErrors("phone")
-    setGlobalError(null)
-    setIsLoading(true)
-
+    clearErrors("email");
+    clearErrors("phone");
+    setGlobalError(null);
+    setIsLoading(true);
+  
     if (data.phone.length !== 10) {
-      setError("phone", { type: "manual", message: "Phone number must be exactly 10 digits." })
-      setIsLoading(false)
-      return
+      setError("phone", { type: "manual", message: "Phone number must be exactly 10 digits." });
+      setIsLoading(false);
+      return;
     }
-
-    const uniqueField = await isEmailOrPhoneUnique(data.email, data.phone)
+  
+    const uniqueField = await isEmailOrPhoneUnique(data.email, data.phone);
     if (uniqueField) {
-      setError(uniqueField, { type: "manual", message: `${uniqueField.charAt(0).toUpperCase() + uniqueField.slice(1)} already exists. Please use a different ${uniqueField}.` })
-      setIsLoading(false)
-      return
+      setError(uniqueField, { type: "manual", message: `${uniqueField.charAt(0).toUpperCase() + uniqueField.slice(1)} already exists. Please use a different ${uniqueField}.` });
+      setIsLoading(false);
+      return;
     }
-
-    const passNumber = await generatePassNumber()
+  
+    const passNumber = await generatePassNumber();
     const registrationData = {
       ...data,
       price,
       passNumber,
       paymentStatus: "unpaid",
       registrationDate: new Date().toISOString(),
-    }
-
+    };
+  
     try {
-      await saveToFirebase(registrationData)
-
-      // Set pass number and email for the dialog box
-      setPassNumber(passNumber)
-      setEmail(data.email)
-
+      await saveToFirebase(registrationData);
+  
+      // Store pass number, email, and price in state for the dialog box
+      setPassNumber(passNumber);
+      setEmail(data.email);
+      setFinalPrice(price); // Store the calculated price
+  
       // Show dialog box
-      setShowDialog(true)
-
+      setShowDialog(true);
+  
       // Clear the form
-      reset()
-
+      reset();
     } catch (error) {
-      console.error("Error during registration:", error)
-      setGlobalError("Error: Something went wrong. Please try again.")
+      console.error("Error during registration:", error);
+      setGlobalError("Error: Something went wrong. Please try again.");
     }
-    setIsLoading(false)
-  }
-
+    setIsLoading(false);
+  };
+  
   return (
     <div className="container mx-auto px-4 py-16">
       <Card className="max-w-md mx-auto bg-white/90 backdrop-blur-sm">
@@ -198,7 +203,7 @@ export default function Register() {
                   {...register("phone", {
                     required: "Phone number is required",
                     pattern: {
-                      value: /^[0-9]{10}$/, 
+                      value: /^[0-9]{10}$/,
                       message: "Phone number must be exactly 10 digits."
                     },
                   })}
@@ -228,7 +233,7 @@ export default function Register() {
           </div>
         )}
       </Card>
-      
+
       {/* Dialog Box */}
       {showDialog && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50">
@@ -236,6 +241,7 @@ export default function Register() {
             <h2 className="text-lg font-semibold">Registration Successful</h2>
             <p className="mt-4">Pass Number: {passNumber}</p>
             <p className="mt-2">Email: {email}</p>
+            <p className="mt-2">Amount: ₹ {finalPrice}</p> {/* Display the price here */}
             <a
               href={`https://wa.me/+919455797973?text=I%20would%20like%20to%20make%20the%20payment%20for%20Pass%20${passNumber}`}
               target="_blank"
@@ -253,6 +259,7 @@ export default function Register() {
           </div>
         </div>
       )}
+
     </div>
   )
 }
